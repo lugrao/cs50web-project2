@@ -22,7 +22,7 @@ class Listing(models.Model):
         Category, on_delete=models.CASCADE, related_name="listings")
     image_url = models.URLField(blank=True)
     starting_bid = models.PositiveIntegerField()
-    available = models.BooleanField()
+    active = models.BooleanField()
 
     def __str__(self):
         return f"{self.title} | User: {self.seller.username}"
