@@ -1,5 +1,3 @@
-# from typing_extensions import ParamSpecKwargs
-from typing import List
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
@@ -116,54 +114,92 @@ def create_listing(request):
 
 def listing(request, id):
     listing = Listing.objects.get(id=id)
-    current_bid = listing.starting_bid
-    watchlisted = False
 
-    # Check if listing is in user's watchlist
-    if request.user.is_authenticated:
-        user = User.objects.get(id=request.user.id)
-        try:
-            for item in user.watchlist.values():
-                if item['listing_id'] == int(id):
-                    watchlisted = True
-                    break
-        except Watchlist.DoesNotExist:
-            watchlisted = False
+    # Data that will be passed to template:
+    context = {
+        "listing": listing,
+        "starting_bid": listing.starting_bid,
+        "current_bid": None,
+        "highest_bidder": None,
+        "watchlisted": False,
+        "is_owner": listing.seller.id == request.user.id,
+        "comments": Comment.objects.filter(listing=listing)
+    }
 
     # Get listing's highest bid
     if listing.bids.all():
-        highest_bid = listing.bids.aggregate(Max("bid_ammount"))[
-            "bid_ammount__max"]
-        if highest_bid >= current_bid:
-            current_bid = highest_bid
+        highest_bid = listing.bids.order_by("bid_ammount").last()
+        if highest_bid.bid_ammount >= context["starting_bid"]:
+            context["current_bid"] = highest_bid.bid_ammount
+            context["highest_bidder"] = highest_bid.bidder
 
-    # if request.method == "POST":
-    #     try:
-    #         request.POST['add-to-watchlist']
-    #         user = User.objects.get(id=request.user.id)
-    #         listing = Listing.objects.get(id=id)
-    #         watchlist = Watchlist(user=user, listing=listing)
-    #         watchlist.save()
-    #         # return HttpResponseRedirect(reverse("watchlist"))
-    #         return HttpResponseRedirect(request.path_info)
-    #     except:
-    #         pass
+    # Handle things with logged in user
+    if request.user.is_authenticated:
+        # Check if listing is in user's watchlist
+        user = User.objects.get(id=request.user.id)
 
-    #     try:
-    #         request.POST['remove-from-watchlist']
-    #         watchlist = Watchlist.objects.filter(
-    #             user_id=request.user.id, listing_id=id)
-    #         watchlist.delete()
-    #         # return HttpResponseRedirect(reverse("listings", kwargs={"id": id}))
-    #         return HttpResponseRedirect(request.path_info)
-    #     except:
-    #         pass
+        # Check if listing is in user's watchlist
+        try:
+            for item in user.watchlist.values():
+                if item['listing_id'] == int(id):
+                    context["watchlisted"] = True
+                    break
+        except Watchlist.DoesNotExist:
+            pass
 
-    return render(request, "auctions/listing.html", {
-        "listing": listing,
-        "current_bid": current_bid,
-        "watchlisted": watchlisted
-    })
+        # Post requests
+        if request.method == "POST":
+
+            # Handle bid
+            try:
+                bid_ammount = int(request.POST["bid"])
+                error = None
+
+                # Check if bid can be placed
+                if not listing.bids.all():
+                    if bid_ammount < context["starting_bid"]:
+                        error = "Your bid must be higher than or equal to the starting bid."
+                else:
+                    if bid_ammount <= context["current_bid"]:
+                        error = "Your bid must be higher than the current bid."
+
+                if error == None:
+                    # Place user's bid
+                    bid = Bid(item=listing,
+                              bid_ammount=bid_ammount, bidder=user)
+                    bid.save()
+                    context["bid_placed"] = True
+                    context["current_bid"] = bid.bid_ammount
+                    return render(request, "auctions/listing.html", context)
+                else:
+                    context["bid_error"] = error
+                    return render(request, "auctions/listing.html", context)
+            except Exception:
+                pass
+
+            # Handle auction closing
+            try:
+                request.POST["close-auction"]
+                listing.active = False
+                listing.save()
+                return render(request, "auctions/listing.html", context)
+            except Exception:
+                pass
+
+            # Handle comment post
+            try:
+                if request.POST["comment"]:
+                    comment = Comment(
+                        comment=request.POST["comment"], user=user, listing=listing)
+                    comment.save()
+                    return render(request, "auctions/listing.html", context)
+                else:
+                    context["comment_error"] = True
+                    return render(request, "auctions/listing.html", context)
+            except Exception:
+                pass
+
+    return render(request, "auctions/listing.html", context)
 
 
 def watchlist(request):
