@@ -7,9 +7,14 @@
 
 {% block body %}
 
-    <div id="listing-wrapper">
-        
+    <section id="listing">        
         <div>
+
+            {% if listing.image_url %}
+                <img src="{{ listing.image_url }}" alt="{{ listing.title }}" width="300" height="300">
+            {% endif %}
+
+
             {% if not listing.active %}
                 <div class="alert alert-secondary" role="alert" style="text-align:center;">
                     <b>This publication is no longer active.</b>
@@ -25,14 +30,11 @@
             </h2>
             <p>{{ listing.description }}</p>
 
-            {% if listing.image_url %}
-                <img src="{{ listing.image_url }}" alt="{{ listing.title }}" width="300" height="300">
-            {% endif %}
-            <h2>Starting bid: ${{ starting_bid }}</h2>
+            <h3>Starting bid: ${{ starting_bid }}</h3>
 
             {% if current_bid is not None %}
-            <h2>Winning bid: ${{ current_bid }}</h2>
-            <h3>Bidder: {{ highest_bidder.username }}</h3>
+            <h3>Winning bid: ${{ current_bid }}</h3>
+            <h4>Bidder: {{ highest_bidder.username }}</h4>
             {% endif %}
 
             {% if user.is_authenticated and listing.active %}
@@ -74,25 +76,17 @@
                         </form>
                     {% endif %}
             {% endif %}
-        </div>
+        </section>
 
-        <div id="comments">
-            <h2>Comments</h2>
-            {% if comments %}
-                {% for comment in comments %}
-                    <div class="comment-wrapper">
-                        <p class="username"><b>{{ comment.user.username }}</b></p>
-                        <p class="comment">{{ comment.comment }}</p>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p>No comments yet.</p>
-            {% endif %}
+        <hr>
+
+        <section id="comments-section">
+            <h3>Comments</h3>
             {% if user.is_authenticated and listing.active %}
                 <form action="{% url 'listing' id=listing.id %}" method="post">
                     {% csrf_token %}
                     <input type="hidden" name="user" value="{{ user.id }}">
-                    <input type="text" name="comment">
+                    <input type="text" name="comment" placeholder="Write a comment">
                     <input type="submit" value="Submit">
                 </form>
                 {% if comment_error %}
@@ -101,7 +95,20 @@
                     </div>
                 {% endif %}
             {% endif %}
-        </div>
+
+            {% if comments %}
+                <div class="comments">
+                    {% for comment in comments %}
+                        <div class="comment-wrapper">
+                            <p class="username"><b>{{ comment.user.username }}</b></p>
+                            <p class="comment">{{ comment.comment }}</p>
+                        </div>
+                    {% endfor %}
+                </div>                
+            {% else %}
+                <p>No comments yet.</p>
+            {% endif %}            
+        </section>
 
     </div>
 

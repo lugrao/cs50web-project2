@@ -26,7 +26,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="page" value="watchlist">
                         <input type="hidden" name="remove-from-watchlist" value="{{ listing.id }}">
-                        <input class="submit btn btn-link" type="submit" value="X" title="Remove from Watchlist">
+                        <input class="submit btn btn-link" type="submit" value="x" title="Remove from Watchlist">
                     </form>                                       
                 </li>
             {% endfor %}
