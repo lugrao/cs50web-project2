@@ -1,0 +1,24 @@
+
+#listing-wrapper {
+    display:flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    /* justify-content: space-evenly; */
+}
+
+#listing-wrapper > div {
+    padding: 40px;
+    max-width: 500px;
+}
+
+.comment-wrapper {
+    display:flex;
+    flex-direction: row;
+    margin: 10px;
+}
+
+.comment-wrapper p {
+    margin: 0 2px;
+}
+
+.comment-wrapper .username {}

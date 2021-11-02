@@ -4,10 +4,10 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.forms import ModelForm
-from django.db.models import Max
 from django.core.exceptions import ObjectDoesNotExist
 
 from .models import User, Category, Listing, Watchlist, Comment, Bid
+from .util import get_active_listings
 
 
 class ListingForm(ModelForm):
@@ -19,26 +19,7 @@ class ListingForm(ModelForm):
 
 def index(request):
     listings = Listing.objects.exclude(active=False).all()
-    active_listings = []
-
-    for listing in listings:
-        active_listing = {
-            "id": listing.id,
-            "title": listing.title,
-            "description": listing.description,
-            "image_url": listing.image_url,
-            "current_bid": listing.starting_bid
-        }
-
-        if listing.bids.all():
-            highest_bid = listing.bids.aggregate(Max("bid_ammount"))[
-                "bid_ammount__max"]
-            # print(highest_bid)
-            if highest_bid >= listing.starting_bid:
-                active_listing["current_bid"] = highest_bid
-
-        active_listings.append(active_listing)
-
+    active_listings = get_active_listings(listings)
     return render(request, "auctions/index.html", {
         "active_listings": active_listings
     })
@@ -135,6 +116,7 @@ def listing(request, id):
 
     # Handle things with logged in user
     if request.user.is_authenticated:
+
         # Check if listing is in user's watchlist
         user = User.objects.get(id=request.user.id)
 
@@ -203,7 +185,13 @@ def listing(request, id):
 
 
 def watchlist(request):
-    return render(request, "auctions/watchlist.html")
+    user = User.objects.get(id=request.user.id)
+    items = user.watchlist.all()
+    listings = [i.listing for i in items]
+    active_listings = get_active_listings(listings)
+    return render(request, "auctions/watchlist.html", {
+        "active_listings": active_listings
+    })
 
 
 def add_to_watchlist(request):
@@ -225,3 +213,22 @@ def remove_from_watchlist(request):
     if request.POST["page"] == "listing":
         return HttpResponseRedirect(reverse("listing", kwargs={"id": listing_id}))
     return HttpResponseRedirect(reverse("watchlist"))
+
+
+def categories(request):
+    categories = Category.objects.all()
+    return render(request, "auctions/categories.html", {
+        "categories": categories
+    })
+
+
+def category(request, category_name):
+    category = Category.objects.get(name=category_name)
+    listings = category.listings.filter(active=True).all()
+    active_listings = get_active_listings(listings)
+    return render(request, "auctions/category.html", {
+        "category": category,
+        "active_listings": active_listings
+    })
+
+

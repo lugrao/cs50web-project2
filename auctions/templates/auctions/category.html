@@ -1,7 +1,7 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
-    <h2>Watchlist</h2>
+    <h2>Categories > {{ category.name }}</h2>
     {% if active_listings %}
         <ul id="active-listings">
             {% for listing in active_listings %}
@@ -21,17 +21,11 @@
                         </h3>           
                         <p>{{ listing.description }}</p>
                         <h4>${{ listing.current_bid }}</h4>
-                    </div>
-                    <form class="remove-from-watchlist" action="{% url 'remove_from_watchlist' %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="page" value="watchlist">
-                        <input type="hidden" name="remove-from-watchlist" value="{{ listing.id }}">
-                        <input class="submit btn btn-link" type="submit" value="X" title="Remove from Watchlist">
-                    </form>                                       
+                    </div>                    
                 </li>
             {% endfor %}
         </ul>        
     {% else %}
         <h2>No listings yet.</h2>
-    {% endif %}
+    {% endif %}        
 {% endblock %}
